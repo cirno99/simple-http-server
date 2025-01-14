@@ -508,6 +508,14 @@ impl Handler for MainHandler {
                 let status = match err.kind() {
                     io::ErrorKind::PermissionDenied => status::Forbidden,
                     io::ErrorKind::NotFound => {
+                        // First try appending .html
+                        let mut html_path = fs_path.clone();
+                        html_path.set_extension("html");
+                        if let Ok(metadata) = fs::metadata(&html_path) {
+                            return self.send_file(req, &html_path, None);
+                        }
+                        
+                        // If that fails, try the try_file_404 logic
                         if let Some(ref p) = self.try_file_404 {
                             if Some(true) == fs::metadata(p).ok().map(|meta| meta.is_file()) {
                                 return self.send_file(req, p, Some(status::NotFound));
